@@ -1,0 +1,55 @@
+# Конфигурация для Front Service
+server:
+  port: 8090
+
+spring:
+  application:
+    name: front-service
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  security:
+    oauth2:
+      client:
+        registration:
+          bank-client:
+            client-id: bank-front-client
+            client-secret: bank-front-secret
+            provider: keycloak
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            authorization-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank/protocol/openid-connect/auth
+            issuer-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank
+            token-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank/protocol/openid-connect/token
+            jwk-set-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank/protocol/openid-connect/certs
+            user-name-attribute: preferred_username
+
+gateway:
+  url: http://${GATEWAY_HOST:localhost}:${GATEWAY_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, busrefresh, health, info
+  endpoint:
+    refresh:
+      access: unrestricted
+    busrefresh:
+      access: unrestricted
+    health:
+      access: read-only
+
+logging:
+  level:
+    ru.yandex.practicum.bank: INFO
+    org.springframework.security: WARN

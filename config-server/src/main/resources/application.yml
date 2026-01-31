@@ -1,0 +1,36 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config
+          fail-on-error: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, busrefresh, health, info
+  endpoint:
+    refresh:
+      access: unrestricted
+    busrefresh:
+      access: unrestricted
+    health:
+      access: read-only
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1" author="IvanKondrashkov">
+        <createTable tableName="transfers" schemaName="svc_transfers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payer_account_number" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payee_account_number" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="DECIMAL(19,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(1000)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_payer_account">
+            <column name="payer_account_number"/>
+        </createIndex>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_payee_account">
+            <column name="payee_account_number"/>
+        </createIndex>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_payer_status">
+            <column name="payer_account_number"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_payee_status">
+            <column name="payee_account_number"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="transfers" schemaName="svc_transfers" indexName="idx_transfers_both_accounts">
+            <column name="payer_account_number"/>
+            <column name="payee_account_number"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

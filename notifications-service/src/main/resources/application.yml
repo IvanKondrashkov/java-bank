@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: notifications-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+# Локальные настройки (переопределяют config server при необходимости)
+logging:
+  level:
+    ru.yandex.practicum.bank: DEBUG
