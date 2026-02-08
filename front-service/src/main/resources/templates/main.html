@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Главная — Банк</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --border: #334155;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .layout {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--accent);
+        }
+        .user-block {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .user-name {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn-logout {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .btn-logout:hover {
+            background: var(--bg-card-hover);
+        }
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+        .summary-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+        .summary-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+        .balance-by-currency .summary-value {
+            margin-bottom: 0.5rem;
+        }
+        .balance-by-currency .summary-value:last-child {
+            margin-bottom: 0;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-bottom: 2rem;
+        }
+        .accounts-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .accounts-table th,
+        .accounts-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .accounts-table th {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .accounts-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .accounts-table tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+        .form-row-buttons {
+            align-items: flex-end;
+        }
+        .form-group-buttons .btn-group {
+            margin-top: 0;
+        }
+        .account-number {
+            font-family: ui-monospace, monospace;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .account-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .account-balance {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .account-currency {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: 0.25rem;
+        }
+        .profile-info {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .block-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 140px;
+        }
+        .form-group label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 0.35rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+        .form-group .readonly {
+            color: var(--text-muted);
+            padding: 0.5rem 0;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .btn-group .btn {
+            flex: 1;
+            min-width: 6rem;
+        }
+        .block-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .bell-wrap {
+            position: relative;
+        }
+        .bell-btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: background 0.2s;
+        }
+        .bell-btn:hover {
+            background: var(--bg-card-hover);
+        }
+        .bell-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            padding: 0 4px;
+            border-radius: 10px;
+            background: var(--accent);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .notifications-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            width: 360px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+        .notifications-dropdown.is-open {
+            display: block;
+        }
+        .notifications-dropdown-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+        .notification-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item:hover {
+            background: var(--bg-card-hover);
+        }
+        .notification-item-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+        .notification-item-message {
+            color: var(--text-primary);
+        }
+        .notifications-empty {
+            padding: 1.5rem 1rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <header>
+            <span class="logo">Банк</span>
+            <div class="user-block">
+                <div class="bell-wrap">
+                    <button type="button" class="bell-btn" id="bellBtn" aria-label="Уведомления" title="Уведомления">
+                        🔔
+                    </button>
+                    <span class="bell-badge" th:if="${notifications != null and !notifications.isEmpty()}" th:text="${notifications.size()}">0</span>
+                    <div class="notifications-dropdown" id="notificationsDropdown">
+                        <div class="notifications-dropdown-header">Уведомления</div>
+                        <div th:if="${notifications != null and !notifications.isEmpty()}">
+                            <div class="notification-item" th:each="n : ${notifications}">
+                                <div class="notification-item-time" th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'dd.MM.yyyy HH:mm') : '—'}">—</div>
+                                <div class="notification-item-message" th:text="${n.message}">—</div>
+                            </div>
+                        </div>
+                        <div class="notifications-empty" th:if="${notifications == null or notifications.isEmpty()}">
+                            Нет уведомлений
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="user-name" th:text="${profile != null and profile.firstName != null and profile.lastName != null and (profile.firstName + ' ' + profile.lastName).trim() != '' ? (profile.firstName + ' ' + profile.lastName) : (profile != null and profile.username != null ? profile.username : 'Пользователь')}">Пользователь</div>
+                    <div class="profile-info" th:if="${profile != null and profile.email != null and !profile.email.isEmpty()}" th:text="${profile.email}">email</div>
+                </div>
+                <form th:action="@{/logout}" method="post">
+                    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button type="submit" class="btn btn-logout">Выйти</button>
+                </form>
+            </div>
+        </header>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}">Сообщение</div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}">Ошибка</div>
+
+        <section class="summary-card">
+            <div class="summary-label">Баланс по валютам</div>
+            <div th:if="${totalBalance != null and !totalBalance.isEmpty()}" class="balance-by-currency">
+                <div class="summary-value" th:each="entry : ${totalBalance}">
+                    <span th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                    <span class="account-currency" th:text="${entry.key}">RUB</span>
+                </div>
+            </div>
+            <div th:if="${totalBalance == null or totalBalance.isEmpty()}" class="summary-value">
+                <span>0.00</span>
+                <span class="account-currency">—</span>
+            </div>
+        </section>
+
+        <section class="block-card">
+            <div class="block-title">Данные аккаунта</div>
+            <form th:action="@{/profile}" method="post">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">Имя</label>
+                        <input type="text" id="firstName" name="firstName" th:value="${profile != null ? profile.firstName : ''}" required placeholder="Имя"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Фамилия</label>
+                        <input type="text" id="lastName" name="lastName" th:value="${profile != null ? profile.lastName : ''}" required placeholder="Фамилия"/>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" th:value="${profile != null ? profile.email : ''}" required placeholder="email@example.com"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Дата рождения</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" th:value="${profile != null ? profile.dateOfBirth : ''}" required/>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+            </form>
+        </section>
+
+        <section class="block-card">
+            <div class="block-title">Создать счёт</div>
+            <form th:action="@{/accounts}" method="post">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="currency">Валюта</label>
+                        <select id="currency" name="currency" required>
+                            <option value="">Выберите валюту</option>
+                            <option value="RUB">RUB</option>
+                            <option value="USD">USD</option>
+                            <option value="CNY">CNY</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Создать счёт</button>
+            </form>
+        </section>
+
+        <section class="block-card">
+            <div class="block-title">Внесение и снятие денег</div>
+            <form method="post" class="cash-form">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="form-row form-row-buttons">
+                    <div class="form-group">
+                        <label for="cashAccount">Счёт</label>
+                        <select id="cashAccount" name="accountNumber" required th:if="${accounts != null and !accounts.isEmpty()}">
+                            <option value="">Выберите счёт</option>
+                            <option th:each="acc : ${accounts}" th:value="${acc.accountNumber}" th:text="${acc.accountNumber + ' (' + #numbers.formatDecimal(acc.balance, 1, 'COMMA', 2, 'POINT') + ' ' + acc.currency + ')'}">счёт</option>
+                        </select>
+                        <input type="text" name="accountNumber" th:if="${accounts == null or accounts.isEmpty()}" placeholder="Нет счетов" disabled/>
+                    </div>
+                    <div class="form-group">
+                        <label for="cashAmount">Сумма</label>
+                        <input type="number" id="cashAmount" name="amount" step="0.01" min="0.01" required placeholder="0.00" th:disabled="${accounts == null or accounts.isEmpty()}"/>
+                    </div>
+                    <div class="form-group form-group-buttons">
+                        <label>&nbsp;</label>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-success" th:formaction="@{/cash/deposit}" th:disabled="${accounts == null or accounts.isEmpty()}">Положить</button>
+                            <button type="submit" class="btn btn-danger" th:formaction="@{/cash/withdraw}" th:disabled="${accounts == null or accounts.isEmpty()}">Снять</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="block-card">
+            <div class="block-title">Перевод на счёт другого клиента</div>
+            <form th:action="@{/transfer}" method="post">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payerAccount">Счёт списания</label>
+                        <select id="payerAccount" name="payerAccountNumber" required th:if="${accounts != null and !accounts.isEmpty()}">
+                            <option value="">Выберите счёт</option>
+                            <option th:each="acc : ${accounts}" th:value="${acc.accountNumber}" th:text="${acc.accountNumber + ' (' + #numbers.formatDecimal(acc.balance, 1, 'COMMA', 2, 'POINT') + ' ' + acc.currency + ')'}">счёт</option>
+                        </select>
+                        <input type="text" name="payerAccountNumber" th:if="${accounts == null or accounts.isEmpty()}" placeholder="Нет счетов" disabled/>
+                    </div>
+                    <div class="form-group">
+                        <label for="payeeAccountNumber">Номер счёта получателя</label>
+                        <input type="text" id="payeeAccountNumber" name="payeeAccountNumber" required placeholder="№ счёта" th:disabled="${accounts == null or accounts.isEmpty()}"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="transferAmount">Сумма</label>
+                        <input type="number" id="transferAmount" name="amount" step="0.01" min="0.01" required placeholder="0.00" th:disabled="${accounts == null or accounts.isEmpty()}"/>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" th:disabled="${accounts == null or accounts.isEmpty()}">Перевести</button>
+            </form>
+        </section>
+
+        <section class="section-title">Мои счета</section>
+        <div class="table-wrap" th:if="${accounts != null and !accounts.isEmpty()}">
+            <table class="accounts-table">
+                <thead>
+                    <tr>
+                        <th>№ счёта</th>
+                        <th>Валюта</th>
+                        <th>Баланс</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="acc : ${accounts}">
+                        <td class="account-number" th:text="${acc.accountNumber}">—</td>
+                        <td th:text="${acc.currency}">RUB</td>
+                        <td class="account-balance" th:text="${#numbers.formatDecimal(acc.balance, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                        <td class="account-meta" th:text="${acc.status}">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state" th:if="${accounts == null or accounts.isEmpty()}">
+            Нет открытых счетов.
+        </div>
+    </div>
+    <script>
+        (function() {
+            var bellBtn = document.getElementById('bellBtn');
+            var dropdown = document.getElementById('notificationsDropdown');
+            if (bellBtn && dropdown) {
+                bellBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('is-open');
+                });
+                document.addEventListener('click', function() {
+                    dropdown.classList.remove('is-open');
+                });
+                dropdown.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

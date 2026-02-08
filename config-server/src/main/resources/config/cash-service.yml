@@ -1,0 +1,66 @@
+# Конфигурация для Cash Service
+server:
+  port: 8084
+
+spring:
+  application:
+    name: cash-service
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:bank_db}
+    username: ${POSTGRES_USER:bank_user}
+    password: ${POSTGRES_PASSWORD:bank_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: svc_cash
+  liquibase:
+    change-log: classpath:db/liquibase-changelog.xml
+    clear-checksums: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  security:
+    oauth2:
+      client:
+        registration:
+          cash-service:
+            client-id: cash-service-client
+            client-secret: cash-service-secret
+            authorization-grant-type: client_credentials
+            provider: keycloak
+        provider:
+          keycloak:
+            issuer-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank
+      resourceserver:
+        jwt:
+          issuer-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, busrefresh, health, info
+  endpoint:
+    refresh:
+      access: unrestricted
+    busrefresh:
+      access: unrestricted
+    health:
+      access: read-only
+
+logging:
+  level:
+    ru.yandex.practicum.bank: INFO
+    org.springframework.security: WARN

@@ -1,0 +1,82 @@
+# Конфигурация для Gateway Service (реактивный стек — WebFlux, Netty)
+server:
+  port: 8081
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: account-service
+          uri: lb://account-service
+          predicates:
+            - Path=/api/accounts/**
+          filters:
+            - StripPrefix=1
+            - name: JwtTokenRelay
+        - id: transfer-service
+          uri: lb://transfer-service
+          predicates:
+            - Path=/api/transfers/**
+          filters:
+            - StripPrefix=1
+            - name: JwtTokenRelay
+        - id: cash-service
+          uri: lb://cash-service
+          predicates:
+            - Path=/api/cash/**
+          filters:
+            - StripPrefix=1
+            - name: JwtTokenRelay
+        - id: notifications-service
+          uri: lb://notifications-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=1
+            - name: JwtTokenRelay
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "${FRONT_SERVICE_URL:http://localhost:8080}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://${KEYCLOAK_HOST:keycloak}:${KEYCLOAK_PORT:8080}/realms/bank
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, busrefresh, health, info
+  endpoint:
+    refresh:
+      access: unrestricted
+    busrefresh:
+      access: unrestricted
+    health:
+      access: read-only
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

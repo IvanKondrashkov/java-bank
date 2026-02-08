@@ -1,0 +1,250 @@
+{
+  "realm": "bank",
+  "enabled": true,
+  "displayName": "Bank Realm",
+  "roles": {
+    "realm": [
+      {
+        "name": "USER",
+        "description": "Роль обычного пользователя"
+      },
+      {
+        "name": "TRANSFER_WRITE",
+        "description": "Разрешает пользователю выполнять переводы"
+      },
+      {
+        "name": "CASH_WRITE",
+        "description": "Разрешает пользователю выполнять операции с наличными"
+      },
+      {
+        "name": "SERVICE",
+        "description": "Роль для сервисных аккаунтов"
+      },
+      {
+        "name": "ACCOUNTS_WRITE",
+        "description": "Разрешает изменять балансы в accounts-service"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Роль администратора"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Nik",
+      "lastName": "Poll",
+      "email": "nik@bank.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN",
+        "USER",
+        "TRANSFER_WRITE",
+        "CASH_WRITE"
+      ]
+    },
+    {
+      "username": "user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john@bank.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER",
+        "TRANSFER_WRITE",
+        "CASH_WRITE"
+      ]
+    },
+    {
+      "username": "service-account-account-service-client",
+      "enabled": true,
+      "serviceAccountClientId": "account-service-client",
+      "realmRoles": [
+        "SERVICE",
+        "ACCOUNTS_WRITE"
+      ]
+    },
+    {
+      "username": "service-account-transfer-service-client",
+      "enabled": true,
+      "serviceAccountClientId": "transfer-service-client",
+      "realmRoles": [
+        "SERVICE",
+        "ACCOUNTS_WRITE"
+      ]
+    },
+    {
+      "username": "service-account-cash-service-client",
+      "enabled": true,
+      "serviceAccountClientId": "cash-service-client",
+      "realmRoles": [
+        "SERVICE",
+        "ACCOUNTS_WRITE"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "bank-front-client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "bank-front-secret",
+      "redirectUris": [
+        "http://localhost:8090/login/oauth2/code/*"
+      ],
+      "baseUrl": "http://localhost:8090",
+      "webOrigins": [
+        "http://localhost:8090"
+      ],
+      "frontchannelLogout": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "post.logout.redirect.uris": "http://localhost:8090/*",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "saml.artifact.binding.identifier": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      }
+    },
+    {
+      "clientId": "account-service-client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "account-service-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "saml.artifact.binding.identifier": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      }
+    },
+    {
+      "clientId": "transfer-service-client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "transfer-service-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "saml.artifact.binding.identifier": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      }
+    },
+    {
+      "clientId": "cash-service-client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "cash-service-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "saml.artifact.binding.identifier": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      }
+    }
+  ]
+}

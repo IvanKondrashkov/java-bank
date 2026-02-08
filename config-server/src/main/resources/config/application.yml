@@ -1,0 +1,22 @@
+# Общие настройки для всех микросервисов
+logging:
+  level:
+    root: INFO
+    ru.yandex.practicum.bank: INFO
+
+spring:
+  application:
+    name: bank-services
+
+eureka:
+  instance:
+    # Use container/network IPs so other services can reach each instance.
+    prefer-ip-address: true
+
+# RabbitMQ для уведомлений (account, cash, transfer, notifications)
+bank:
+  notifications:
+    amqp:
+      exchange-name: bank.notifications
+      queue-name: bank.notifications.queue
+      routing-key: notification
