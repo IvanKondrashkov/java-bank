@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 @AutoConfigureStubRunner(
         stubsMode = StubRunnerProperties.StubsMode.LOCAL,
-        ids = "ru.practicum:account-service:+:stubs:8082"
+        ids = "ru.practicum:account-service:+:stubs:8083"
 )
 @ActiveProfiles("contract-test")
 class AccountServiceClientContractTest {

@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gateway-service.fullname" . }}-config
+  labels:
+    {{- include "gateway-service.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    server:
+      port: {{ .Values.service.port }}
+    spring:
+      application:
+        name: gateway-service
+      cloud:
+        config:
+          enabled: false
+        discovery:
+          enabled: false
+        eureka:
+          client:
+            enabled: false
+        gateway:
+          routes:
+            - id: account-service
+              uri: http://{{ .Values.backendServices.accountService.host }}:{{ .Values.backendServices.accountService.port }}
+              predicates:
+                - Path=/api/accounts/**
+              filters:
+                - StripPrefix=1
+                - name: JwtTokenRelay
+            - id: transfer-service
+              uri: http://{{ .Values.backendServices.transferService.host }}:{{ .Values.backendServices.transferService.port }}
+              predicates:
+                - Path=/api/transfers/**
+              filters:
+                - StripPrefix=1
+                - name: JwtTokenRelay
+            - id: cash-service
+              uri: http://{{ .Values.backendServices.cashService.host }}:{{ .Values.backendServices.cashService.port }}
+              predicates:
+                - Path=/api/cash/**
+              filters:
+                - StripPrefix=1
+                - name: JwtTokenRelay
+            - id: notifications-service
+              uri: http://{{ .Values.backendServices.notificationsService.host }}:{{ .Values.backendServices.notificationsService.port }}
+              predicates:
+                - Path=/api/notifications/**
+              filters:
+                - StripPrefix=1
+                - name: JwtTokenRelay
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "{{ .Values.frontService.url }}"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
+      rabbitmq:
+        host: {{ .Values.rabbitmq.host }}
+        port: {{ .Values.rabbitmq.port }}
+        username: {{ .Values.rabbitmq.auth.username }}
+        password: {{ .Values.rabbitmq.auth.password }}
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              issuer-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health, info
+      endpoint:
+        health:
+          access: read-only

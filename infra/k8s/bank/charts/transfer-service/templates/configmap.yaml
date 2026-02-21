@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "transfer-service.fullname" . }}-config
+  labels:
+    {{- include "transfer-service.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    server:
+      port: {{ .Values.service.port }}
+    spring:
+      application:
+        name: transfer-service
+      cloud:
+        config:
+          enabled: false
+        discovery:
+          enabled: false
+        eureka:
+          client:
+            enabled: false
+        openfeign:
+          client:
+            config:
+              account-service:
+                url: http://account-service:8082
+      datasource:
+        url: jdbc:postgresql://{{ .Values.postgresql.host }}:{{ .Values.postgresql.port }}/{{ .Values.postgresql.auth.database }}
+        username: {{ .Values.postgresql.auth.username }}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        show-sql: false
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+            default_schema: {{ .Values.config.database.schema }}
+      liquibase:
+        change-log: classpath:db/liquibase-changelog.xml
+        clear-checksums: true
+      security:
+        oauth2:
+          client:
+            registration:
+              transfer-service:
+                client-id: {{ .Values.config.oauth.clientId }}
+                client-secret: ${OAUTH_CLIENT_SECRET}
+                authorization-grant-type: client_credentials
+                provider: keycloak
+            provider:
+              keycloak:
+                issuer-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank
+          resourceserver:
+            jwt:
+              issuer-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank
+      rabbitmq:
+        host: {{ .Values.rabbitmq.host }}
+        port: {{ .Values.rabbitmq.port }}
+        username: {{ .Values.rabbitmq.auth.username }}
+        password: {{ .Values.rabbitmq.auth.password }}
+    bank:
+      notifications:
+        amqp:
+          exchange-name: bank.notifications
+          queue-name: bank.notifications.queue
+          routing-key: notification
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health, info
+      endpoint:
+        health:
+          access: read-only

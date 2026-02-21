@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "transfer-service.fullname" . }}-test-connection"
+  labels:
+    {{- include "transfer-service.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: curl
+      image: curlimages/curl:8.6.0
+      args:
+        - "-fsS"
+        - "http://{{ include "transfer-service.fullname" . }}:{{ .Values.service.port }}/actuator/health"
+  restartPolicy: Never

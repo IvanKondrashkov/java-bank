@@ -1,0 +1,11 @@
+{{- if .Values.keycloak.keycloakConfigCli.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-keycloak-realm
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  k8s-bank-realm.json: |-
+{{ .Files.Get "files/k8s-bank-realm.json" | indent 4 }}
+{{- end }}

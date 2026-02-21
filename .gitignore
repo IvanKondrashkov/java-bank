@@ -28,3 +28,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Helm (зависимости подтягиваются через helm dependency update в CI)
+infra/k8s/bank/charts/*.tgz
+
+# Secrets / env
+.env

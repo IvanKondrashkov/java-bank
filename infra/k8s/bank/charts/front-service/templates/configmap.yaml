@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "front-service.fullname" . }}-config
+  labels:
+    {{- include "front-service.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    server:
+      port: {{ .Values.service.port }}
+    spring:
+      application:
+        name: front-service
+      cloud:
+        config:
+          enabled: false
+        discovery:
+          enabled: false
+        eureka:
+          client:
+            enabled: false
+      thymeleaf:
+        prefix: classpath:/templates/
+        suffix: .html
+        cache: false
+      rabbitmq:
+        host: {{ .Values.rabbitmq.host }}
+        port: {{ .Values.rabbitmq.port }}
+        username: {{ .Values.rabbitmq.auth.username }}
+        password: {{ .Values.rabbitmq.auth.password }}
+      security:
+        oauth2:
+          client:
+            registration:
+              bank-client:
+                client-id: {{ .Values.config.oauth.clientId }}
+                client-secret: ${OAUTH_CLIENT_SECRET}
+                provider: keycloak
+                scope: openid,profile,email
+                authorization-grant-type: authorization_code
+                redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            provider:
+              keycloak:
+                authorization-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank/protocol/openid-connect/auth
+                issuer-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank
+                token-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank/protocol/openid-connect/token
+                jwk-set-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank/protocol/openid-connect/certs
+                user-name-attribute: preferred_username
+    gateway:
+      url: http://{{ .Values.gateway.host }}:{{ .Values.gateway.port }}
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health, info
+      endpoint:
+        health:
+          access: read-only

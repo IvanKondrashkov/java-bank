@@ -1,0 +1,296 @@
+# Release "bank" → services: bank-postgresql, bank-keycloak-db, bank-keycloak, bank-rabbitmq, bank-*-service.
+# Jenkins overrides: postgresql.auth.password, keycloak.auth.adminPassword, *-service.image.*, ingress hosts.
+global:
+  domain: bank.local
+  baseKeycloakHost: auth.local
+
+# Configuration for the account-service subchart
+# NOTE: Build image locally: `docker build -t account-service:0.0.1-SNAPSHOT .` in account-service dir
+account-service:
+  fullnameOverride: account-service
+  replicaCount: 1
+  waitForKeycloak: true
+  image:
+    repository: account-service # Removed registry prefix
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent # Use IfNotPresent for local images
+  service:
+    type: ClusterIP
+    port: 8082
+  ingress:
+    enabled: false
+    className: "nginx" # Specify your ingress controller class
+    hosts:
+      - host: account.test.local # Use global domain or specific
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+  config:
+    database:
+      schema: svc_accounts
+    oauth:
+      clientId: account-service-client
+      clientSecret: account-service-secret
+
+# Configuration for the cash-service subchart
+# NOTE: Build image locally: `docker build -t cash-service:0.0.1-SNAPSHOT .` in cash-service dir
+cash-service:
+  fullnameOverride: cash-service
+  replicaCount: 1
+  waitForKeycloak: true
+  image:
+    repository: cash-service # Removed registry prefix
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent # Use IfNotPresent for local images
+  service:
+    type: ClusterIP
+    port: 8084
+  ingress:
+    enabled: false
+    className: "nginx" # Specify your ingress controller class
+    annotations: {}
+    hosts:
+      - host: cash.test.local # Use global domain or specific
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+  config:
+    database:
+      schema: svc_cash
+    oauth:
+      clientId: cash-service-client
+      clientSecret: cash-service-secret
+
+# Configuration for the transfer-service subchart
+# NOTE: Build image locally: `docker build -t transfer-service:0.0.1-SNAPSHOT .` in transfer-service dir
+transfer-service:
+  fullnameOverride: transfer-service
+  replicaCount: 1
+  waitForKeycloak: true
+  image:
+    repository: transfer-service # Removed registry prefix
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent # Use IfNotPresent for local images
+  service:
+    type: ClusterIP
+    port: 8083
+  ingress:
+    enabled: false
+    className: "nginx" # Specify your ingress controller class
+    annotations: {}
+    hosts:
+      - host: transfer.test.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific # Use global domain or specific
+    tls: []
+  config:
+    database:
+      schema: svc_transfers
+    oauth:
+      clientId: transfer-service-client
+      clientSecret: transfer-service-secret
+
+# Configuration for the notifications-service subchart
+# NOTE: Build image locally: `docker build -t notifications-service:0.0.1-SNAPSHOT .` in notifications-service dir
+notifications-service:
+  fullnameOverride: notifications-service
+  replicaCount: 1
+  waitForKeycloak: true
+  image:
+    repository: notifications-service # Removed registry prefix
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent # Use IfNotPresent for local images
+  service:
+    type: ClusterIP
+    port: 8085
+  ingress:
+    enabled: false
+    className: "nginx" # Specify your ingress controller class
+    annotations: {}
+    hosts:
+      - host: notifications.test.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific # Use global domain or specific
+    tls: []
+  config:
+    database:
+      schema: svc_notifications
+    oauth:
+      clientSecret: notifications-service-secret
+
+# Configuration for the gateway-service subchart
+# NOTE: Build image locally: `docker build -t gateway-service:0.0.1-SNAPSHOT .` in gateway-service dir
+gateway-service:
+  fullnameOverride: gateway-service
+  replicaCount: 1
+  waitForKeycloak: true
+  image:
+    repository: gateway-service # Removed registry prefix
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent # Use IfNotPresent for local images
+  service:
+    type: ClusterIP
+    port: 8081
+  ingress:
+    enabled: true
+    className: "nginx" # Specify your ingress controller class
+    annotations: {}
+    hosts:
+      - host: gateway.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific # Use global domain or specific
+    tls: []
+
+# Configuration for the front-service subchart
+# NOTE: Build image locally: `docker build -t front-service:0.0.1-SNAPSHOT .` in front-service dir
+front-service:
+  fullnameOverride: front-service
+  replicaCount: 1
+  waitForKeycloak: true
+  image:
+    repository: front-service # Removed registry prefix
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent # Use IfNotPresent for local images
+  service:
+    type: ClusterIP
+    port: 8090
+  ingress:
+    enabled: true
+    className: "nginx" # Specify your ingress controller class
+    annotations: {}
+    hosts:
+      - host: front.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific # Use global domain or specific
+    tls: []
+  config:
+    oauth:
+      clientId: bank-front-client
+      clientSecret: bank-front-secret
+
+# Configuration for Keycloak (Bitnami chart). Uses external DB keycloak-db (no nested postgresql).
+keycloak:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/keycloak
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: bank-keycloak-db
+    port: 5432
+    database: bitnami_keycloak
+    user: bn_keycloak
+    existingSecret: bank-keycloak-db
+    existingSecretPasswordKey: password
+  auth:
+    adminUser: admin
+    adminPassword: admin  # Overridden by Jenkins via --set keycloak.auth.adminPassword
+  ingress:
+    enabled: true
+    hostname: auth.local
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+  proxyAddressForwarding: true
+  httpEnabled: true
+  extraStartupArgs: "--features=hostname:v2"
+  extraEnvVars:
+    - name: KC_HOSTNAME
+      value: "http://auth.local"
+    - name: KC_HOSTNAME_STRICT_HTTPS
+      value: "false"
+    - name: KC_HTTP_ENABLED
+      value: "true"
+  keycloakConfigCli:
+    enabled: true
+    existingConfigmap: bank-keycloak-realm
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/keycloak-config-cli
+    availabilityCheck:
+      enabled: true
+    extraEnvVars:
+      - name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT
+        value: "300s"
+      - name: KEYCLOAK_AVAILABILITYCHECK_RETRYDELAY
+        value: "5s"
+    backoffLimit: 30
+  startupProbe:
+    enabled: true
+    failureThreshold: 60
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+  resources:
+    requests: { memory: 768Mi, cpu: 250m }
+    limits: { memory: 1536Mi, cpu: 1000m }
+
+# Configuration for PostgreSQL (Bitnami chart)
+postgresql:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+  auth:
+    username: bank_user
+    password: bank_password
+    database: bank_db
+  primary:
+    persistence:
+      size: 1Gi
+    startupProbe:
+      enabled: true
+      failureThreshold: 30
+    readinessProbe:
+      initialDelaySeconds: 60
+  resources:
+    requests: { memory: 256Mi, cpu: 100m }
+    limits: { memory: 512Mi, cpu: 500m }
+
+# Configuration for PostgreSQL Keycloak DB (Bitnami chart)
+keycloak-db:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+  auth:
+    username: bn_keycloak
+    password: keycloak_db_password
+    database: bitnami_keycloak
+  primary:
+    persistence:
+      size: 1Gi
+    startupProbe:
+      enabled: true
+      failureThreshold: 30
+    readinessProbe:
+      initialDelaySeconds: 60
+  resources:
+    requests: { memory: 256Mi, cpu: 100m }
+    limits: { memory: 512Mi, cpu: 500m }
+
+# Configuration for RabbitMQ (Bitnami chart)
+rabbitmq:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/rabbitmq
+  auth:
+    username: guest
+    password: guest
+  persistence:
+    size: 1Gi
+  ingress:
+    enabled: true
+    hostname: rabbitmq.local
+  readinessProbe:
+    initialDelaySeconds: 30
+  livenessProbe:
+    initialDelaySeconds: 60
+  resources:
+    requests: { memory: 256Mi, cpu: 100m }
+    limits: { memory: 512Mi, cpu: 500m }
