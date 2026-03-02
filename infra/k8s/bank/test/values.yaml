@@ -1,0 +1,38 @@
+# Overrides for TEST: ingress hostnames (base values + this file used in Jenkins deploy)
+global:
+  baseKeycloakHost: auth.test.local
+
+keycloak:
+  ingress:
+    hostname: auth.test.local
+  extraEnvVars:
+    - name: KC_HOSTNAME
+      value: "http://auth.test.local"
+    - name: KC_HOSTNAME_STRICT_HTTPS
+      value: "false"
+    - name: KC_HTTP_ENABLED
+      value: "true"
+
+gateway-service:
+  ingress:
+    enabled: true
+    hosts:
+      - host: gateway.test.local
+        paths:
+          - path: /
+            pathType: Prefix
+  frontService:
+    url: http://front.test.local
+
+front-service:
+  ingress:
+    enabled: true
+    hosts:
+      - host: front.test.local
+        paths:
+          - path: /
+            pathType: Prefix
+rabbitmq:
+  ingress:
+    enabled: true
+    hostname: rabbitmq.test.local

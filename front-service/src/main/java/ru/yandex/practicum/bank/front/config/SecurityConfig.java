@@ -27,6 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login/**", "/logout/**", "/oauth2/**", "/error").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -70,9 +71,7 @@ public class SecurityConfig {
     private List<SimpleGrantedAuthority> extractRealmRoles(Map<String, Object> claims) {
         if (claims == null) {
             return List.of();
-        }
-
-        Object realmAccess = claims.get("realm_access");
+        }        Object realmAccess = claims.get("realm_access");
         if (!(realmAccess instanceof Map<?, ?> realmAccessMap)) {
             return List.of();
         }        Object roles = realmAccessMap.get("roles");

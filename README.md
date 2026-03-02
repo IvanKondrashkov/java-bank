@@ -5,6 +5,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.5+-02303A?logo=gradle&logoColor=white)](https://gradle.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Keycloak](https://img.shields.io/badge/Keycloak-OAuth2-FF7900?logo=keycloak&logoColor=white)](https://www.keycloak.org/)
 [![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
 [![Liquibase](https://img.shields.io/badge/Liquibase-Migrations-2962FF)](https://www.liquibase.org/)
@@ -23,9 +24,11 @@
 - **transfer-service** (порт 8083) - Переводы между счетами
 - **cash-service** (порт 8084) - Операции с наличными (пополнение/снятие)
 - **notifications-service** (порт 8085) - Отправка уведомлений
-- **eureka-server** (порт 8761) - Service Discovery (Eureka)
-- **config-server** (порт 8888) - Externalized Config (Spring Cloud Config)
+- **eureka-server** (порт 8761) - Service Discovery (Eureka, Docker Compose режим)
+- **config-server** (порт 8888) - Externalized Config (Docker Compose режим)
 - **keycloak** (порт 8080) - OAuth 2.0 Authorization Server (Keycloak)
+
+Для Kubernetes Service Discovery реализован через `Service`, а конфигурация — через `ConfigMaps` и `Secrets`.
 
 ## Технологии
 ### Backend
@@ -47,8 +50,11 @@
 
 ### Инфраструктура
 - **Keycloak** - OAuth 2.0 Authorization Server
-- **RabbitMQ** - Message Bus для обновления конфигураций
+- **RabbitMQ** - Message Bus (Docker Compose и Kubernetes)
 - **Docker** - Контейнеризация
+- **Kubernetes (Minikube)** - Локальный кластер
+- **Helm** - Пакетный менеджер и шаблонизатор для K8s
+- **Jenkins** - CI/CD (Docker)
 - **Gradle** - Система сборки
 
 ### Безопасность
@@ -61,6 +67,7 @@
 - Gradle 8.5+
 - Docker и Docker Compose (для запуска в контейнерах)
 - PostgreSQL 15+ (для локального запуска)
+- Minikube, kubectl, Helm (для Kubernetes)
 
 ## Сборка проекта
 ### Сборка всех модулей
@@ -89,6 +96,113 @@ docker-compose up -d
 ```bash
 docker-compose ps
 ```
+
+### Kubernetes (Minikube + Helm)
+#### 1. Подготовка Minikube и Ingress
+```bash
+minikube start --memory=10192 --cpus=4 --driver=docker
+minikube addons enable ingress
+```
+
+#### 2. Сборка и публикация образов
+Рекомендуемый путь — через Jenkins (см. раздел ниже). Если нужно вручную:
+```bash
+./gradlew test
+docker build -t ghcr.io/<user>/account-service:<tag> account-service
+docker build -t ghcr.io/<user>/cash-service:<tag> cash-service
+docker build -t ghcr.io/<user>/transfer-service:<tag> transfer-service
+docker build -t ghcr.io/<user>/notifications-service:<tag> notifications-service
+docker build -t ghcr.io/<user>/gateway-service:<tag> gateway-service
+docker build -t ghcr.io/<user>/front-service:<tag> front-service
+```
+
+#### 3. Установка Helm-чарта
+```bash
+helm dependency update infra/k8s/bank
+helm upgrade --install bank infra/k8s/bank \
+  --namespace dev --create-namespace \
+  --set account-service.image.repository=ghcr.io/<user>/account-service \
+  --set account-service.image.tag=<tag> \
+  --set cash-service.image.repository=ghcr.io/<user>/cash-service \
+  --set cash-service.image.tag=<tag> \
+  --set transfer-service.image.repository=ghcr.io/<user>/transfer-service \
+  --set transfer-service.image.tag=<tag> \
+  --set notifications-service.image.repository=ghcr.io/<user>/notifications-service \
+  --set notifications-service.image.tag=<tag> \
+  --set gateway-service.image.repository=ghcr.io/<user>/gateway-service \
+  --set gateway-service.image.tag=<tag> \
+  --set front-service.image.repository=ghcr.io/<user>/front-service \
+  --set front-service.image.tag=<tag> \
+  --set postgresql.auth.password=<db-pass> \
+  --set gateway-service.ingress.enabled=true \
+  --set gateway-service.ingress.hosts[0].host=gateway.dev.local \
+  --set gateway-service.ingress.hosts[0].paths[0].path=/ \
+  --set gateway-service.ingress.hosts[0].paths[0].pathType=Prefix \
+  --set gateway-service.frontService.url=http://front.dev.local \
+  --set front-service.ingress.enabled=true \
+  --set front-service.ingress.hosts[0].host=front.dev.local \
+  --set front-service.ingress.hosts[0].paths[0].path=/ \
+  --set front-service.ingress.hosts[0].paths[0].pathType=Prefix \
+  --set global.baseKeycloakHost=auth.dev.local \
+  --set keycloak.ingress.enabled=true \
+  --set keycloak.ingress.hostname=auth.dev.local \
+  --set rabbitmq.ingress.enabled=true \
+  --set rabbitmq.ingress.hostname=rabbitmq.dev.local
+```
+
+#### 4. Добавьте hosts-записи
+```
+127.0.0.1 gateway.dev.local
+127.0.0.1 front.dev.local
+127.0.0.1 auth.dev.local
+127.0.0.1 rabbitmq.dev.local
+```
+Если меняете домены, обновите redirect-uri и baseUrl в `infra/k8s/bank/files/k8s-bank-realm.json` и перезапустите Helm релиз. Файл подключается через `keycloak.keycloakConfigCli.configuration` в `infra/k8s/bank/values.yaml`.
+
+#### 5. CoreDNS: rewrite для Keycloak
+Чтобы микросервисы могли обращаться к Keycloak по `http://auth.dev.local` (и т.п.), этот хост должен резолвиться внутри кластера в сервис Keycloak. Настройка — один раз на кластер.
+
+**5.1. Открыть ConfigMap CoreDNS**
+```bash
+kubectl edit configmap coredns -n kube-system
+```
+
+**5.2. Добавить rewrite в блок Corefile**  
+В блоке `.:53 { ... }` добавьте строки **rewrite** до директив `kubernetes` и `forward`. Для установки в namespace `dev` (как в примере выше):
+```yaml
+rewrite name auth.dev.local bank-keycloak.dev.svc.cluster.local
+```
+Для test/prod — `auth.test.local` → `bank-keycloak.test.svc.cluster.local` и/или `auth.prod.local` → `bank-keycloak.prod.svc.cluster.local`. Namespace в правой части должен совпадать с тем, куда ставится Helm-релиз.
+
+**5.3. Перезагрузить CoreDNS**
+```bash
+kubectl rollout restart deployment coredns -n kube-system
+```
+(Для DaemonSet: `kubectl rollout restart daemonset coredns -n kube-system`.)
+
+#### 6. Доступ к приложению из браузера (port-forward Ingress)
+На Minikube с драйвером Docker IP ноды (например, 192.168.49.2) часто недоступен с хоста. Чтобы открыть фронт по `http://front.dev.local`, пробросьте порт Ingress-контроллера на localhost (команду держите запущенной в отдельном терминале):
+
+```bash
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 80:80
+```
+После этого в браузере откройте **http://front.dev.local**.
+
+#### 7. Helm-тесты
+```bash
+helm test bank -n dev
+```
+
+### Jenkins (Docker)
+Файлы Jenkins находятся в `infra/jenkins`.
+1. Создайте `infra/jenkins/.env` на основе `.env.example`.
+2. Скопируйте kubeconfig в `infra/jenkins/jenkins_kubeconfig.yaml` и замените `server` на `https://host.docker.internal:<port>`, добавив `insecure-skip-tls-verify: true`.
+3. Запустите Jenkins:
+```bash
+cd infra/jenkins
+docker compose up -d --build
+```
+4. Откройте Jenkins: http://localhost:8080 и запустите Multibranch pipeline `JavaBank`.
 
 ### Локальный запуск (без Docker)
 #### Быстрый старт
@@ -260,10 +374,14 @@ java-bank/
 ├── settings.gradle         # Настройки Gradle
 └── infra/                  # Инфраструктурные файлы
     ├── docker-compose.yml  # Docker Compose конфигурация
-    └── bank-realm.json     # Keycloak realm конфигурация
+    ├── keycloak/           # Realm конфигурация Keycloak
+    ├── k8s/                # Helm-чарты для Kubernetes
+    └── jenkins/            # Jenkins (Docker) и pipeline
 ```
 
-## Config Server
+## Config Server (Docker Compose)
+Раздел относится только к режиму Docker Compose. В Kubernetes конфигурации поставляются через `ConfigMaps` и `Secrets`.
+
 Config Server хранит конфигурации для каждого микросервиса отдельно:
 - `account-service.yml` - настройки Account Service
 - `transfer-service.yml` - настройки Transfer Service
@@ -276,7 +394,7 @@ Config Server хранит конфигурации для каждого мик
 Каждый микросервис получает свою конфигурацию из Config Server при запуске.
 
 ### Обновление конфигураций в реальном времени
-Приложение использует **Spring Cloud Bus** (RabbitMQ) для обновления конфигураций без перезапуска сервисов.
+Приложение использует **Spring Cloud Bus** (RabbitMQ) для обновления конфигураций без перезапуска сервисов в режиме Docker Compose. В Kubernetes конфигурации обновляются через пересборку/перезапуск Helm релиза.
 
 **Процесс обновления конфигураций:**
 
@@ -313,14 +431,14 @@ Config Server хранит конфигурации для каждого мик
 psql -h localhost -U bank_user -d bank_db
 ```
 
-### Проблемы с Eureka
+### Проблемы с Eureka (Docker Compose)
 Убедитесь, что Eureka Server запущен первым и доступен по адресу http://localhost:8761
 
 ### Проблемы с Keycloak
 1. Убедитесь, что Keycloak запущен и доступен: http://localhost:8080
 2. Проверьте, что создан Realm `bank`
 3. Проверьте настройки клиентов в Keycloak
-4. Проверьте issuer-uri в конфигурации Config Server: `http://localhost:8080/realms/bank`
+4. Для Docker Compose проверьте issuer-uri в Config Server: `http://localhost:8080/realms/bank`. Для Kubernetes проверьте `ConfigMap` нужного сервиса.
 
 ### Проблемы с аутентификацией
 1. Проверьте, что realm и клиенты созданы в Keycloak

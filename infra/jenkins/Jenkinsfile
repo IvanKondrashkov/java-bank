@@ -1,0 +1,141 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_TAG             = "${env.BUILD_NUMBER}"
+        DB_PASSWORD           = credentials('DB_PASSWORD')
+        KEYCLOAK_ADMIN_PASS   = credentials('KEYCLOAK_ADMIN_PASSWORD')
+        DOCKER_REGISTRY       = credentials('DOCKER_REGISTRY')
+        GITHUB_USERNAME       = credentials('GITHUB_USERNAME')
+    }
+
+    stages {
+        stage('Prepare Gradle') {
+            steps {
+                sh 'chmod +x gradlew'
+            }
+        }
+
+        stage('Publish Contract Stubs') {
+            steps {
+                sh './gradlew :account-service:contractTest :account-service:publishToMavenLocal'
+            }
+        }
+
+        stage('Unit Tests') {
+            parallel {
+                stage('account-service') {
+                    steps { sh './gradlew :account-service:clean :account-service:test' }
+                }
+                stage('cash-service') {
+                    steps { sh './gradlew :cash-service:clean :cash-service:test' }
+                }
+                stage('transfer-service') {
+                    steps { sh './gradlew :transfer-service:clean :transfer-service:test' }
+                }
+                stage('notifications-service') {
+                    steps { sh './gradlew :notifications-service:clean :notifications-service:test' }
+                }
+                stage('gateway-service') {
+                    steps { sh './gradlew :gateway-service:clean :gateway-service:test' }
+                }
+                stage('front-service') {
+                    steps { sh './gradlew :front-service:clean :front-service:test' }
+                }
+            }
+        }
+
+        stage('Build JARs') {
+            steps {
+                sh './gradlew bootJar'
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sh """
+                docker build -f account-service/Dockerfile -t ${DOCKER_REGISTRY}/account-service:${IMAGE_TAG} .
+                docker build -f cash-service/Dockerfile -t ${DOCKER_REGISTRY}/cash-service:${IMAGE_TAG} .
+                docker build -f transfer-service/Dockerfile -t ${DOCKER_REGISTRY}/transfer-service:${IMAGE_TAG} .
+                docker build -f notifications-service/Dockerfile -t ${DOCKER_REGISTRY}/notifications-service:${IMAGE_TAG} .
+                docker build -f gateway-service/Dockerfile -t ${DOCKER_REGISTRY}/gateway-service:${IMAGE_TAG} .
+                docker build -f front-service/Dockerfile -t ${DOCKER_REGISTRY}/front-service:${IMAGE_TAG} .
+                """
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                withCredentials([string(credentialsId: 'GHCR_TOKEN', variable: 'GHCR_TOKEN')]) {
+                    sh """
+                    echo \$GHCR_TOKEN | docker login ghcr.io -u ${GITHUB_USERNAME} --password-stdin
+                    docker push ${DOCKER_REGISTRY}/account-service:${IMAGE_TAG}
+                    docker push ${DOCKER_REGISTRY}/cash-service:${IMAGE_TAG}
+                    docker push ${DOCKER_REGISTRY}/transfer-service:${IMAGE_TAG}
+                    docker push ${DOCKER_REGISTRY}/notifications-service:${IMAGE_TAG}
+                    docker push ${DOCKER_REGISTRY}/gateway-service:${IMAGE_TAG}
+                    docker push ${DOCKER_REGISTRY}/front-service:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Helm Deploy to TEST') {
+            steps {
+                sh """
+                helm dependency update infra/k8s/bank
+                helm upgrade --install bank infra/k8s/bank \\
+                  --namespace test --create-namespace --timeout 15m \\
+                  -f infra/k8s/bank/values.yaml \\
+                  -f infra/k8s/bank/test/values.yaml \\
+                  --set account-service.image.repository=${DOCKER_REGISTRY}/account-service \\
+                  --set account-service.image.tag=${IMAGE_TAG} \\
+                  --set cash-service.image.repository=${DOCKER_REGISTRY}/cash-service \\
+                  --set cash-service.image.tag=${IMAGE_TAG} \\
+                  --set transfer-service.image.repository=${DOCKER_REGISTRY}/transfer-service \\
+                  --set transfer-service.image.tag=${IMAGE_TAG} \\
+                  --set notifications-service.image.repository=${DOCKER_REGISTRY}/notifications-service \\
+                  --set notifications-service.image.tag=${IMAGE_TAG} \\
+                  --set gateway-service.image.repository=${DOCKER_REGISTRY}/gateway-service \\
+                  --set gateway-service.image.tag=${IMAGE_TAG} \\
+                  --set front-service.image.repository=${DOCKER_REGISTRY}/front-service \\
+                  --set front-service.image.tag=${IMAGE_TAG} \\
+                  --set postgresql.auth.password=\${DB_PASSWORD} \\
+                  --set keycloak.auth.adminPassword=\${KEYCLOAK_ADMIN_PASS}
+                """
+            }
+        }
+
+        stage('Manual Approval for PROD') {
+            steps {
+                input message: 'Deploy to PROD environment?', ok: 'Yes, deploy'
+            }
+        }
+
+        stage('Helm Deploy to PROD') {
+            steps {
+                sh """
+                helm dependency update infra/k8s/bank
+                helm upgrade --install bank infra/k8s/bank \\
+                  --namespace prod --create-namespace --timeout 15m \\
+                  -f infra/k8s/bank/values.yaml \\
+                  -f infra/k8s/bank/prod/values.yaml \\
+                  --set account-service.image.repository=${DOCKER_REGISTRY}/account-service \\
+                  --set account-service.image.tag=${IMAGE_TAG} \\
+                  --set cash-service.image.repository=${DOCKER_REGISTRY}/cash-service \\
+                  --set cash-service.image.tag=${IMAGE_TAG} \\
+                  --set transfer-service.image.repository=${DOCKER_REGISTRY}/transfer-service \\
+                  --set transfer-service.image.tag=${IMAGE_TAG} \\
+                  --set notifications-service.image.repository=${DOCKER_REGISTRY}/notifications-service \\
+                  --set notifications-service.image.tag=${IMAGE_TAG} \\
+                  --set gateway-service.image.repository=${DOCKER_REGISTRY}/gateway-service \\
+                  --set gateway-service.image.tag=${IMAGE_TAG} \\
+                  --set front-service.image.repository=${DOCKER_REGISTRY}/front-service \\
+                  --set front-service.image.tag=${IMAGE_TAG} \\
+                  --set postgresql.auth.password=\${DB_PASSWORD} \\
+                  --set keycloak.auth.adminPassword=\${KEYCLOAK_ADMIN_PASS}
+                """
+            }
+        }
+    }
+}

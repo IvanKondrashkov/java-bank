@@ -1,0 +1,30 @@
+dependencies:
+- name: account-service
+  repository: file://charts/account-service
+  version: 0.1.0
+- name: cash-service
+  repository: file://charts/cash-service
+  version: 0.1.0
+- name: transfer-service
+  repository: file://charts/transfer-service
+  version: 0.1.0
+- name: notifications-service
+  repository: file://charts/notifications-service
+  version: 0.1.0
+- name: gateway-service
+  repository: file://charts/gateway-service
+  version: 0.1.0
+- name: front-service
+  repository: file://charts/front-service
+  version: 0.1.0
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 18.4.0
+- name: keycloak
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 25.2.0
+- name: rabbitmq
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 16.0.14
+digest: sha256:353a9f5c7846b85c4aff53abc8a6ba40c31ced585f994d6ef40fddc15eb4f705
+generated: "2026-02-22T17:24:46.4588371+05:00"

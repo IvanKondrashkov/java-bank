@@ -14,6 +14,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .pathMatchers("/actuator/**").hasRole("ADMIN")
                         .anyExchange().authenticated()
                 )
