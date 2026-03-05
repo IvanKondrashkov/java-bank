@@ -1,4 +1,4 @@
-# Release "bank" → services: bank-postgresql, bank-keycloak-db, bank-keycloak, bank-rabbitmq, bank-*-service.
+# Release "bank" → services: bank-postgresql, bank-keycloak-db, bank-keycloak, bank-kafka, bank-*-service.
 # Jenkins overrides: postgresql.auth.password, keycloak.auth.adminPassword, *-service.image.*, ingress hosts.
 global:
   domain: bank.local
@@ -274,23 +274,25 @@ keycloak-db:
     requests: { memory: 256Mi, cpu: 100m }
     limits: { memory: 512Mi, cpu: 500m }
 
-# Configuration for RabbitMQ (Bitnami chart)
-rabbitmq:
+# Configuration for Kafka (Bitnami chart): 2 brokers, KRaft, PLAINTEXT, persistence
+kafka:
   image:
     registry: docker.io
-    repository: bitnamilegacy/rabbitmq
-  auth:
-    username: guest
-    password: guest
-  persistence:
-    size: 1Gi
-  ingress:
-    enabled: true
-    hostname: rabbitmq.local
-  readinessProbe:
-    initialDelaySeconds: 30
-  livenessProbe:
-    initialDelaySeconds: 60
+    repository: bitnamilegacy/kafka
+  controller:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 1Gi
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+  overrideConfiguration:
+    auto.create.topics.enable: "true"
   resources:
-    requests: { memory: 256Mi, cpu: 100m }
-    limits: { memory: 512Mi, cpu: 500m }
+    requests: { memory: 512Mi, cpu: 250m }
+    limits: { memory: 1Gi, cpu: 1000m }

@@ -1,6 +1,7 @@
 # Overrides for TEST: ingress hostnames (base values + this file used in Jenkins deploy)
 global:
   baseKeycloakHost: auth.test.local
+  kafkaBootstrapServers: "bank-kafka-controller-0.bank-kafka-controller-headless.test.svc.cluster.local:9092,bank-kafka-controller-1.bank-kafka-controller-headless.test.svc.cluster.local:9092"
 
 keycloak:
   ingress:
@@ -32,7 +33,3 @@ front-service:
         paths:
           - path: /
             pathType: Prefix
-rabbitmq:
-  ingress:
-    enabled: true
-    hostname: rabbitmq.test.local

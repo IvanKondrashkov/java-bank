@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import ru.yandex.practicum.bank.account.model.Account;
 import ru.yandex.practicum.bank.account.model.UserProfile;
 import ru.yandex.practicum.bank.account.model.AccountActions;
@@ -18,11 +18,9 @@ import ru.yandex.practicum.commons.dto.notification.request.NotificationRequest;
 @Transactional
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
-    private final RabbitTemplate rabbitTemplate;
-    @Value("${bank.notifications.amqp.exchange-name:bank.notifications}")
-    private String exchangeName;
-    @Value("${bank.notifications.amqp.routing-key:notification}")
-    private String routingKey;
+    private final KafkaTemplate<String, NotificationRequest> kafkaTemplate;
+    @Value("${bank.notifications.kafka.topic:bank.notifications}")
+    private String topic;
 
     @Override
     public void sendNotification(Account account, AccountActions accountActions, NotificationType notificationType) {
@@ -40,9 +38,9 @@ public class NotificationServiceImpl implements NotificationService {
             notification.setUsername(username);
             notification.setMessage(message);
             notification.setType(notificationType.name());
-            rabbitTemplate.convertAndSend(exchangeName, routingKey, notification);
+            kafkaTemplate.send(topic, username, notification);
         } catch (Exception e) {
-            log.warn("Failed to send notification to queue", e);
+            log.warn("Failed to send notification to Kafka", e);
         }
     }
 
