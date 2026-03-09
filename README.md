@@ -7,7 +7,7 @@
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Keycloak](https://img.shields.io/badge/Keycloak-OAuth2-FF7900?logo=keycloak&logoColor=white)](https://www.keycloak.org/)
-[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+[![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org/)
 [![Liquibase](https://img.shields.io/badge/Liquibase-Migrations-2962FF)](https://www.liquibase.org/)
 [![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?logo=thymeleaf&logoColor=white)](https://www.thymeleaf.org/)
 
@@ -50,7 +50,7 @@
 
 ### Инфраструктура
 - **Keycloak** - OAuth 2.0 Authorization Server
-- **RabbitMQ** - Message Bus (Docker Compose и Kubernetes)
+- **Apache Kafka (KRaft)** - Обмен сообщениями и Spring Cloud Bus (Docker Compose: 2 брокера; Kubernetes — отдельный пукт)
 - **Docker** - Контейнеризация
 - **Kubernetes (Minikube)** - Локальный кластер
 - **Helm** - Пакетный менеджер и шаблонизатор для K8s
@@ -92,7 +92,7 @@ cd infra
 docker-compose up -d
 ```
 
-Все сервисы будут запущены автоматически. Проверьте статус:
+Проверьте статус:
 ```bash
 docker-compose ps
 ```
@@ -100,7 +100,7 @@ docker-compose ps
 ### Kubernetes (Minikube + Helm)
 #### 1. Подготовка Minikube и Ingress
 ```bash
-minikube start --memory=10192 --cpus=4 --driver=docker
+minikube start --memory=15884 --cpus=4 --driver=docker
 minikube addons enable ingress
 ```
 
@@ -145,9 +145,7 @@ helm upgrade --install bank infra/k8s/bank \
   --set front-service.ingress.hosts[0].paths[0].pathType=Prefix \
   --set global.baseKeycloakHost=auth.dev.local \
   --set keycloak.ingress.enabled=true \
-  --set keycloak.ingress.hostname=auth.dev.local \
-  --set rabbitmq.ingress.enabled=true \
-  --set rabbitmq.ingress.hostname=rabbitmq.dev.local
+  --set keycloak.ingress.hostname=auth.dev.local
 ```
 
 #### 4. Добавьте hosts-записи
@@ -155,7 +153,6 @@ helm upgrade --install bank infra/k8s/bank \
 127.0.0.1 gateway.dev.local
 127.0.0.1 front.dev.local
 127.0.0.1 auth.dev.local
-127.0.0.1 rabbitmq.dev.local
 ```
 Если меняете домены, обновите redirect-uri и baseUrl в `infra/k8s/bank/files/k8s-bank-realm.json` и перезапустите Helm релиз. Файл подключается через `keycloak.keycloakConfigCli.configuration` в `infra/k8s/bank/values.yaml`.
 
@@ -164,18 +161,7 @@ helm upgrade --install bank infra/k8s/bank \
 
 **5.1. Открыть ConfigMap CoreDNS**
 ```bash
-kubectl edit configmap coredns -n kube-system
-```
-
-**5.2. Добавить rewrite в блок Corefile**  
-В блоке `.:53 { ... }` добавьте строки **rewrite** до директив `kubernetes` и `forward`. Для установки в namespace `dev` (как в примере выше):
-```yaml
-rewrite name auth.dev.local bank-keycloak.dev.svc.cluster.local
-```
-Для test/prod — `auth.test.local` → `bank-keycloak.test.svc.cluster.local` и/или `auth.prod.local` → `bank-keycloak.prod.svc.cluster.local`. Namespace в правой части должен совпадать с тем, куда ставится Helm-релиз.
-
-**5.3. Перезагрузить CoreDNS**
-```bash
+kubectl apply -f infra/k8s/coredns-configmap.yaml
 kubectl rollout restart deployment coredns -n kube-system
 ```
 (Для DaemonSet: `kubectl rollout restart daemonset coredns -n kube-system`.)
@@ -213,9 +199,15 @@ docker compose up -d --build
      -e POSTGRES_DB=bank_db -e POSTGRES_USER=bank_user -e POSTGRES_PASSWORD=bank_password \
      postgres:15-alpine
    
-   # RabbitMQ
-   docker run -d --name bank-rabbitmq -p 5672:5672 -p 15672:15672 \
-     rabbitmq:3-management-alpine
+   # Apache Kafka (KRaft, один брокер для локальной разработки)
+   docker run -d --name bank-kafka -p 9094:9092 \
+     -e KAFKA_NODE_ID=1 \
+     -e KAFKA_PROCESS_ROLES=broker,controller \
+     -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093 \
+     -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9094 \
+     -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+     -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+     apache/kafka:3.7.0
    
    # Keycloak
    docker run -d --name bank-keycloak -p 8080:8080 \
@@ -257,7 +249,6 @@ docker compose up -d --build
    - Config Server: http://localhost:8888/actuator/health
    - Front UI: http://localhost:8090
    - Keycloak Admin: http://localhost:8080
-   - RabbitMQ Management: http://localhost:15672 (guest/guest)
 
 ### Остановка
 ```bash
@@ -272,7 +263,7 @@ docker-compose down
 - **Keycloak Admin Console:** http://localhost:8080
 - **Keycloak Realm:** http://localhost:8080/realms/bank
 - **Config Server:** http://localhost:8888
-- **RabbitMQ Management:** http://localhost:15672 (guest/guest)
+- **Kafka UI:** http://localhost:8086
 
 ## Аутентификация и авторизация
 ### Настройка OAuth 2.0 (Keycloak)
@@ -394,7 +385,7 @@ Config Server хранит конфигурации для каждого мик
 Каждый микросервис получает свою конфигурацию из Config Server при запуске.
 
 ### Обновление конфигураций в реальном времени
-Приложение использует **Spring Cloud Bus** (RabbitMQ) для обновления конфигураций без перезапуска сервисов в режиме Docker Compose. В Kubernetes конфигурации обновляются через пересборку/перезапуск Helm релиза.
+Приложение использует **Spring Cloud Bus** (Apache Kafka) для обновления конфигураций без перезапуска сервисов в режиме Docker Compose. В Kubernetes конфигурации обновляются через пересборку/перезапуск Helm релиза.
 
 **Процесс обновления конфигураций:**
 

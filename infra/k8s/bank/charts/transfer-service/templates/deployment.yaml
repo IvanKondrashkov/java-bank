@@ -82,6 +82,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-postgresql
                   key: password
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.global.kafkaBootstrapServers }}
           envFrom:
             - secretRef:
                 name: {{ include "transfer-service.fullname" . }}-secret

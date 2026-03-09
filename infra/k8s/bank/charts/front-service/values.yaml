@@ -100,13 +100,7 @@ keycloak:
   host: bank-keycloak
   port: 80
 
-rabbitmq:
-  host: bank-rabbitmq
-  port: 5672
-  auth:
-    username: guest
-    password: guest
-
+# kafka.bootstrapServers передаётся из umbrella (values.yaml банка)
 gateway:
   host: gateway-service
   port: 8081

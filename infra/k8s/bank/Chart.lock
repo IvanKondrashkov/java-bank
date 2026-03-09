@@ -20,11 +20,14 @@ dependencies:
 - name: postgresql
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 18.4.0
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 18.4.0
 - name: keycloak
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 25.2.0
-- name: rabbitmq
+- name: kafka
   repository: oci://registry-1.docker.io/bitnamicharts
-  version: 16.0.14
-digest: sha256:353a9f5c7846b85c4aff53abc8a6ba40c31ced585f994d6ef40fddc15eb4f705
-generated: "2026-02-22T17:24:46.4588371+05:00"
+  version: 32.4.3
+digest: sha256:795c70556e85f381f7d811b52414a8d52d528154633ecb75cea1157e1f89ef59
+generated: "2026-03-05T12:21:58.7452456+05:00"

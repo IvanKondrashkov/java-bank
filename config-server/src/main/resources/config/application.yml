@@ -13,10 +13,9 @@ eureka:
     # Use container/network IPs so other services can reach each instance.
     prefer-ip-address: true
 
-# RabbitMQ для уведомлений (account, cash, transfer, notifications)
+# Уведомления через Kafka
 bank:
   notifications:
-    amqp:
-      exchange-name: bank.notifications
-      queue-name: bank.notifications.queue
-      routing-key: notification
+    kafka:
+      topic: bank.notifications
+      dlt-topic: bank.notifications.dlt

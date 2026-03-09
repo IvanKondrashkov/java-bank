@@ -40,17 +40,21 @@ data:
           resourceserver:
             jwt:
               issuer-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank
-      rabbitmq:
-        host: {{ .Values.rabbitmq.host }}
-        port: {{ .Values.rabbitmq.port }}
-        username: {{ .Values.rabbitmq.auth.username }}
-        password: {{ .Values.rabbitmq.auth.password }}
+      kafka:
+        bootstrap-servers: {{ .Values.global.kafkaBootstrapServers }}
+        consumer:
+          group-id: notifications-service
+          auto-offset-reset: earliest
+          enable-auto-commit: false
+          key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+          properties:
+            spring.json.trusted.packages: "*"
     bank:
       notifications:
-        amqp:
-          exchange-name: bank.notifications
-          queue-name: bank.notifications.queue
-          routing-key: notification
+        kafka:
+          topic: bank.notifications
+          dlt-topic: bank.notifications.dlt
     management:
       endpoints:
         web:

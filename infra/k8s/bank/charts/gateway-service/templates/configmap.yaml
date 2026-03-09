@@ -61,11 +61,8 @@ data:
                   - OPTIONS
                 allowedHeaders: "*"
                 allowCredentials: true
-      rabbitmq:
-        host: {{ .Values.rabbitmq.host }}
-        port: {{ .Values.rabbitmq.port }}
-        username: {{ .Values.rabbitmq.auth.username }}
-        password: {{ .Values.rabbitmq.auth.password }}
+      kafka:
+        bootstrap-servers: {{ .Values.global.kafkaBootstrapServers }}
       security:
         oauth2:
           resourceserver:

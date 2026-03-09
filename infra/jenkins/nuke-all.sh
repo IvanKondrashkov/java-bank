@@ -12,7 +12,7 @@ fi
 
 echo "Using DOCKER_REGISTRY: $DOCKER_REGISTRY"
 
-echo "Uninstalling Helm releases (bank = umbrella with postgresql, keycloak, rabbitmq)..."
+echo "Uninstalling Helm releases (bank = umbrella with postgresql, keycloak, kafka)..."
 for ns in dev test prod; do
   helm uninstall bank -n "$ns" --wait --timeout 120s 2>/dev/null || true
 done
