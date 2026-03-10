@@ -25,6 +25,7 @@ import ru.yandex.practicum.commons.dto.transfer.request.TransferRequest;
 import ru.yandex.practicum.commons.dto.account.request.UpdateBalanceRequest;
 import ru.yandex.practicum.bank.transfer.exception.EntityNotFoundException;
 import ru.yandex.practicum.bank.transfer.exception.InvalidTransferException;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,8 @@ class TransferServiceImplTest {
     private AccountServiceClient accountServiceClient;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private BankMetrics bankMetrics;
     private final TransferMapper transferMapper = new TransferMapperImpl();
     private TransferService transferService;
     private Transfer transfer;
@@ -58,7 +61,8 @@ class TransferServiceImplTest {
                 transferRepository,
                 transferMapper,
                 accountServiceClient,
-                notificationService
+                notificationService,
+                bankMetrics
         );
     }
 

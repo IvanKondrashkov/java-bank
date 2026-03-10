@@ -1,0 +1,40 @@
+image:
+  repository: docker.elastic.co/beats/filebeat
+  tag: "8.15.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+service:
+  port: 5044
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: filebeat.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+logstashHost: "logstash:5044"
+
+hostPath:
+  containers: /var/log/containers
+  pods: /var/log/pods
+
+resources:
+  requests: { memory: 128Mi, cpu: 50m }
+  limits: { memory: 256Mi, cpu: 200m }

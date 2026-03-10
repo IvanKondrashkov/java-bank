@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prometheus.fullname" . }}-config
+  labels:
+    {{- include "prometheus.labels" . | nindent 4 }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    rule_files:
+      - /etc/prometheus/alerts.yml
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      - job_name: 'account-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['account-service:8082']
+      - job_name: 'cash-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['cash-service:8084']
+      - job_name: 'transfer-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['transfer-service:8083']
+      - job_name: 'notifications-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['notifications-service:8085']
+      - job_name: 'gateway-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['gateway-service:8081']
+      - job_name: 'front-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['front-service:8090']
+  alerts.yml: |
+    groups:
+      - name: bank-alerts
+        interval: 30s
+        rules:
+          - alert: High5xxRate
+            expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (application) > 0.1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High 5xx rate on {{ "{{" }} $labels.application {{ "}}" }}"
+              description: "5xx rate is above 0.1/s for 2m on {{ "{{" }} $labels.application {{ "}}" }}."
+          - alert: HighWithdrawalFailures
+            expr: sum(rate(bank_withdrawal_failures_total[5m])) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High withdrawal failure rate"
+              description: "Withdrawal failures rate is above 0.5/s for 2m."
+          - alert: HighTransferFailures
+            expr: sum(rate(bank_transfer_failures_total[5m])) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High transfer failure rate"
+              description: "Transfer failures rate is above 0.5/s for 2m."
+          - alert: HighNotificationSendFailures
+            expr: sum(rate(bank_notification_send_failures_total[5m])) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High notification send failure rate"
+              description: "Notification send failures rate is above 0.5/s for 2m."

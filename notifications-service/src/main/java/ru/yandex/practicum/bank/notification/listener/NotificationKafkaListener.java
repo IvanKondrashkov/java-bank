@@ -7,6 +7,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
 import ru.yandex.practicum.bank.notification.service.NotificationService;
 import ru.yandex.practicum.commons.dto.notification.request.NotificationRequest;
 
@@ -15,6 +16,7 @@ import ru.yandex.practicum.commons.dto.notification.request.NotificationRequest;
 @RequiredArgsConstructor
 public class NotificationKafkaListener {
     private final NotificationService notificationService;
+    private final BankMetrics bankMetrics;
 
     @RetryableTopic(
             attempts = "4",
@@ -35,5 +37,6 @@ public class NotificationKafkaListener {
                 request.getType(),
                 request.getMessage()
         );
+        bankMetrics.recordNotificationSendFailure(request.getUsername());
     }
 }

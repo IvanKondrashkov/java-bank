@@ -3,6 +3,7 @@
 global:
   domain: bank.local
   baseKeycloakHost: auth.local
+  zipkinEndpoint: "http://bank-zipkin:9411/api/v2/spans"
 
 # Configuration for the account-service subchart
 # NOTE: Build image locally: `docker build -t account-service:0.0.1-SNAPSHOT .` in account-service dir

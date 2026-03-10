@@ -1,0 +1,37 @@
+replicaCount: 1
+
+image:
+  repository: prom/prometheus
+  tag: "v2.52.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+service:
+  type: ClusterIP
+  port: 9090
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: prometheus.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+resources:
+  requests: { memory: 256Mi, cpu: 100m }
+  limits: { memory: 512Mi, cpu: 500m }

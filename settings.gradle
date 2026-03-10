@@ -1,5 +1,6 @@
 rootProject.name = 'java-bank'
 include 'commons-dto'
+include 'metric-starter'
 include 'front-service'
 include 'gateway-service'
 include 'account-service'

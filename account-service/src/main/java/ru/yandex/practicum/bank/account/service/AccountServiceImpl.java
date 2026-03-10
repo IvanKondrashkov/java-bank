@@ -29,6 +29,7 @@ import ru.yandex.practicum.bank.account.repository.TransactionRepository;
 import ru.yandex.practicum.bank.account.repository.UserProfileRepository;
 import ru.yandex.practicum.bank.account.util.AccountUtils;
 import ru.yandex.practicum.bank.account.exception.*;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
 
 @Slf4j
 @Service
@@ -41,6 +42,7 @@ public class AccountServiceImpl implements AccountService {
     private final AccountMapper accountMapper;
     private final UserProfileMapper userProfileMapper;
     private final NotificationService notificationService;
+    private final BankMetrics bankMetrics;
     private static final Set<TransactionType> DEBIT_OPERATIONS = EnumSet.of(
             TransactionType.WITHDRAWAL,
             TransactionType.TRANSFER_OUT,
@@ -163,6 +165,7 @@ public class AccountServiceImpl implements AccountService {
         BigDecimal balanceBefore = account.getBalance();
         TransactionType type = TransactionType.valueOf(request.getOperationType());
         if (DEBIT_OPERATIONS.contains(type) && !account.hasSufficientFunds(request.getAmount())) {
+            bankMetrics.recordCashFailure(type.name(), account.getUser().getUsername());
             throw new InvalidAccountException(String.format("Insufficient funds in account: %s", accountNumber));
         }
 

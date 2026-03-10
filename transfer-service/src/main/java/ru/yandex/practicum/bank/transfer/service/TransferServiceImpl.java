@@ -22,6 +22,8 @@ import ru.yandex.practicum.bank.transfer.repository.TransferRepository;
 import ru.yandex.practicum.bank.transfer.exception.EntityNotFoundException;
 import ru.yandex.practicum.bank.transfer.exception.InvalidTransferException;
 import ru.yandex.practicum.bank.transfer.exception.ServiceUnavailableException;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
+import ru.yandex.practicum.commons.security.SecurityUtils;
 
 @Slf4j
 @Service
@@ -32,6 +34,7 @@ public class TransferServiceImpl implements TransferService {
     private final TransferMapper transferMapper;
     private final AccountServiceClient accountServiceClient;
     private final NotificationService notificationService;
+    private final BankMetrics bankMetrics;
 
     @Override
     @Transactional(readOnly = true)
@@ -98,6 +101,7 @@ public class TransferServiceImpl implements TransferService {
         if (!response.isSuccess()) {
             transfer.setStatus(PaymentStatus.FAILED);
             transferRepository.save(transfer);
+            bankMetrics.recordTransferFailure(withdrawRequest.getOperationType(), SecurityUtils.getCurrentUsername());
             throw new InvalidTransferException(String.format("Transfer failed during withdrawal: %s", response.getMessage()));
         }
         notificationService.sendNotification(response.getData(), TransferType.TRANSFER_OUT, NotificationType.PUSH);
@@ -120,6 +124,7 @@ public class TransferServiceImpl implements TransferService {
             rollbackWithdrawal(request);
             transfer.setStatus(PaymentStatus.ROLLED_BACK);
             transferRepository.save(transfer);
+            bankMetrics.recordTransferFailure(depositRequest.getOperationType(), SecurityUtils.getCurrentUsername());
             throw new InvalidTransferException(String.format("Transfer failed during deposit: %s", response.getMessage()));
         }
         notificationService.sendNotification(response.getData(), TransferType.TRANSFER_IN, NotificationType.PUSH);
