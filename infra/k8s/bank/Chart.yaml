@@ -57,3 +57,25 @@ dependencies:
   - name: kafka
     version: "32.4.3"
     repository: oci://registry-1.docker.io/bitnamicharts
+  - name: zipkin
+    version: 0.1.0
+    repository: "file://charts/zipkin"
+  - name: prometheus
+    version: 0.1.0
+    repository: "file://charts/prometheus"
+  - name: grafana
+    version: 0.1.0
+    repository: "file://charts/grafana"
+  # ELK stack
+  - name: filebeat
+    version: 0.1.0
+    repository: "file://charts/filebeat"
+  - name: logstash
+    version: 0.1.0
+    repository: "file://charts/logstash"
+  - name: elasticsearch
+    version: 0.1.0
+    repository: "file://charts/elasticsearch"
+  - name: kibana
+    version: 0.1.0
+    repository: "file://charts/kibana"

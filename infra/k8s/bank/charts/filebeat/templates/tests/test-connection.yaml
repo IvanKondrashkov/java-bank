@@ -1,0 +1,15 @@
+# Filebeat is a DaemonSet with no user-facing Service; this test is a no-op for structure consistency.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "filebeat.fullname" . }}-test-connection"
+  labels:
+    {{- include "filebeat.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: noop
+      image: busybox
+      command: ['true']
+  restartPolicy: Never

@@ -69,10 +69,19 @@ data:
             jwt:
               issuer-uri: http://{{ .Values.global.baseKeycloakHost }}/realms/bank
     management:
+      tracing:
+        sampling:
+          probability: 1.0
+      zipkin:
+        tracing:
+          endpoint: {{ .Values.global.zipkinEndpoint | default "http://bank-zipkin:9411/api/v2/spans" }}
       endpoints:
         web:
           exposure:
-            include: health, info
+            include: health, info, metrics, prometheus
       endpoint:
         health:
           access: read-only
+      metrics:
+        tags:
+          application: gateway-service

@@ -67,10 +67,19 @@ data:
           topic: bank.notifications
           dlt-topic: bank.notifications.dlt
     management:
+      tracing:
+        sampling:
+          probability: 1.0
+      zipkin:
+        tracing:
+          endpoint: {{ .Values.global.zipkinEndpoint }}
       endpoints:
         web:
           exposure:
-            include: health, info
+            include: health, info, metrics, prometheus
       endpoint:
         health:
           access: read-only
+      metrics:
+        tags:
+          application: transfer-service

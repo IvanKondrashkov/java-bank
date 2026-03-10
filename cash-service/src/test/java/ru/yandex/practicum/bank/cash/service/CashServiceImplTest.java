@@ -25,6 +25,7 @@ import ru.yandex.practicum.commons.dto.cash.request.CashOperationRequest;
 import ru.yandex.practicum.commons.dto.account.request.UpdateBalanceRequest;
 import ru.yandex.practicum.bank.cash.exception.EntityNotFoundException;
 import ru.yandex.practicum.bank.cash.exception.InvalidCashOperationException;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,8 @@ class CashServiceImplTest {
     private AccountServiceClient accountServiceClient;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private BankMetrics bankMetrics;
     private final CashOperationMapper cashOperationMapper = new CashOperationMapperImpl();
     private CashService cashService;
     private CashOperation operation;
@@ -58,7 +61,8 @@ class CashServiceImplTest {
                 cashOperationRepository,
                 cashOperationMapper,
                 accountServiceClient,
-                notificationService
+                notificationService,
+                bankMetrics
         );
     }
 

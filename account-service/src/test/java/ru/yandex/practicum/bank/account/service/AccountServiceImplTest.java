@@ -33,6 +33,7 @@ import ru.yandex.practicum.commons.dto.account.request.UpdateBalanceRequest;
 import ru.yandex.practicum.commons.dto.account.request.CreateOrUpdateUserProfileRequest;
 import ru.yandex.practicum.bank.account.exception.InvalidAccountException;
 import ru.yandex.practicum.bank.account.exception.EntityNotFoundException;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +50,8 @@ class AccountServiceImplTest {
     private UserProfileRepository userProfileRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private BankMetrics bankMetrics;
     private final AccountMapper accountMapper = new AccountMapperImpl();
     private final UserProfileMapper userProfileMapper = new UserProfileMapperImpl();
     private AccountService accountService;
@@ -84,7 +87,8 @@ class AccountServiceImplTest {
                 userProfileRepository,
                 accountMapper,
                 userProfileMapper,
-                notificationService
+                notificationService,
+                bankMetrics
         );
     }
 

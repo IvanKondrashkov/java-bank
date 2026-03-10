@@ -179,6 +179,15 @@ kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 80:80
 helm test bank -n dev
 ```
 
+### Observability (Zipkin, Prometheus, Grafana, ELK)
+Приложение поставляет трейсы, метрики и логи в единый стек наблюдаемости.
+
+**Docker Compose** (`infra/docker-compose.yml`):
+- **Zipkin** — http://localhost:9411 (трейсы запросов)
+- **Prometheus** — http://localhost:9090 (метрики)
+- **Grafana** — http://localhost:3000 (логин/пароль: admin/admin; datasource Prometheus уже настроен)
+- **ELK**: Elasticsearch (9200), Logstash (5044), Kibana — http://localhost:5601; Filebeat собирает логи контейнеров и отправляет в Logstash (на Linux с доступом к Docker socket)
+
 ### Jenkins (Docker)
 Файлы Jenkins находятся в `infra/jenkins`.
 1. Создайте `infra/jenkins/.env` на основе `.env.example`.

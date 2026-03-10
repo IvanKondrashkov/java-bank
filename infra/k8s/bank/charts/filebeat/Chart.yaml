@@ -1,0 +1,6 @@
+apiVersion: v2
+name: filebeat
+description: Filebeat for shipping logs to Logstash
+type: application
+version: 0.1.0
+appVersion: "8.15"

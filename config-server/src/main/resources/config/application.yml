@@ -19,3 +19,20 @@ bank:
     kafka:
       topic: bank.notifications
       dlt-topic: bank.notifications.dlt
+
+# Observability: Zipkin tracing + Prometheus metrics (Docker Compose: config-server раздаёт эти настройки)
+# Для Kubernetes значения задаются в ConfigMap каждого сервиса (global.zipkinEndpoint и т.д.)
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      access: read-only

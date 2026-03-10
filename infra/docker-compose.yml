@@ -122,6 +122,117 @@ services:
       timeout: 10s
       retries: 3
 
+  # Zipkin - Distributed tracing
+  zipkin:
+    image: openzipkin/zipkin:3.0
+    container_name: bank-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - bank-network
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: bank-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - bank-network
+    depends_on:
+      - account-service
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: bank-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - bank-network
+    depends_on:
+      - prometheus
+
+  # Elasticsearch - Log storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: bank-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - bank-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  # Logstash - Log processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: bank-logstash
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    networks:
+      - bank-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # Filebeat - Ship container logs to Logstash (optional: requires host Docker socket)
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.0
+    container_name: bank-filebeat
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: filebeat -e -strict.perms=false -system.hostfs=/hostfs
+    environment:
+      - SYSTEM_HOSTFS=/hostfs
+    networks:
+      - bank-network
+    depends_on:
+      - logstash
+
+  # Kibana - Log visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    container_name: bank-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - bank-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
   # Keycloak - OAuth 2.0 Authorization Server
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
@@ -348,3 +459,5 @@ volumes:
   postgres_data:
   kafka_0_data:
   kafka_1_data:
+  grafana_data:
+  elasticsearch_data:

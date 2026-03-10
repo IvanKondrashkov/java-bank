@@ -22,6 +22,8 @@ import ru.yandex.practicum.commons.dto.account.request.UpdateBalanceRequest;
 import ru.yandex.practicum.bank.cash.repository.CashOperationRepository;
 import ru.yandex.practicum.bank.cash.exception.EntityNotFoundException;
 import ru.yandex.practicum.bank.cash.exception.InvalidCashOperationException;
+import ru.yandex.practicum.bank.metrics.BankMetrics;
+import ru.yandex.practicum.commons.security.SecurityUtils;
 
 @Slf4j
 @Service
@@ -32,6 +34,7 @@ public class CashServiceImpl implements CashService {
     private final CashOperationMapper cashOperationMapper;
     private final AccountServiceClient accountServiceClient;
     private final NotificationService notificationService;
+    private final BankMetrics bankMetrics;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,6 +82,7 @@ public class CashServiceImpl implements CashService {
             if (!response.isSuccess()) {
                 operation.setStatus(PaymentStatus.FAILED);
                 cashOperationRepository.save(operation);
+                bankMetrics.recordCashFailure(type.name(), SecurityUtils.getCurrentUsername());
                 throw new InvalidCashOperationException(String.format("Cash operation failed: %s", response.getMessage()));
             } else {
                 operation.setStatus(PaymentStatus.COMPLETED);
@@ -89,6 +93,7 @@ public class CashServiceImpl implements CashService {
             return cashOperationMapper.toInfo(operation, operationId, response.getData().getBalance());
         } catch (Exception e) {
             log.error("Cash operation failed: {}", e.getMessage());
+            bankMetrics.recordCashFailure(type.name(), SecurityUtils.getCurrentUsername());
             throw new InvalidCashOperationException(String.format("Cash operation failed: %s", e.getMessage()));
         }
     }
